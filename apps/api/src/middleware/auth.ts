@@ -69,12 +69,24 @@ export function withErrorHandling<TParams = Record<string, string>>(
   return async (req: NextRequest, ctx: { params: TParams }) => {
     try {
       return await handler(req, ctx);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        return NextResponse.json({ error: err.message }, { status: err.status });
-      }
-      console.error("[API] Erreur inattendue:", err);
-      return NextResponse.json({ error: "Erreur interne du serveur." }, { status: 500 });
-    }
+    } catch (err: any) {
+  if (err?.digest === "DYNAMIC_SERVER_USAGE") {
+    throw err;
+  }
+
+  if (err instanceof ApiError) {
+    return NextResponse.json(
+      { error: err.message },
+      { status: err.status }
+    );
+  }
+
+  console.error("[API] Erreur inattendue:", err);
+
+  return NextResponse.json(
+    { error: "Erreur interne du serveur." },
+    { status: 500 }
+  );
+}
   };
 }
