@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole, PaymentStatus } from "@golfeexpress/types";
 import { requireAuth, withErrorHandling, ApiError } from "@/middleware/auth";
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 
 /**
  * POST /api/orders/[orderId]/payment-intent
@@ -35,7 +35,7 @@ async function postHandler(req: NextRequest, ctx: { params: { orderId: string } 
   // Stripe attend un montant en plus petite unité monétaire (centimes pour EUR).
   const amountInCents = Math.round(Number(order.total) * 100);
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripe().paymentIntents.create({
     amount: amountInCents,
     currency: "eur",
     metadata: { orderId: order.id, orderNumber: order.orderNumber, clientId: client.id },
