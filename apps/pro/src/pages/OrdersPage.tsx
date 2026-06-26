@@ -1,0 +1,67 @@
+import React from "react";
+import { OrderStatus } from "@golfeexpress/types";
+import { useProOrdersStore } from "@/store/useProOrdersStore";
+import { ProOrderCard } from "@/components/ProOrderCard";
+
+interface KanbanColumn {
+  title: string;
+  emoji: string;
+  statuses: OrderStatus[];
+}
+
+const COLUMNS: KanbanColumn[] = [
+  { title: "Nouvelles", emoji: "🆕", statuses: [OrderStatus.PENDING, OrderStatus.CONFIRMED] },
+  { title: "En préparation", emoji: "👨‍🍳", statuses: [OrderStatus.PREPARING] },
+  { title: "Prêtes", emoji: "✅", statuses: [OrderStatus.READY] },
+  {
+    title: "En livraison",
+    emoji: "🛵",
+    statuses: [OrderStatus.RIDER_ASSIGNED, OrderStatus.PICKED_UP, OrderStatus.IN_DELIVERY],
+  },
+  { title: "Terminées", emoji: "🏁", statuses: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+];
+
+export function OrdersPage() {
+  const orders = useProOrdersStore((s) => s.orders);
+  const advanceStatus = useProOrdersStore((s) => s.advanceStatus);
+  const cancelOrder = useProOrdersStore((s) => s.cancelOrder);
+
+  return (
+    <div className="flex-1 p-8">
+      <div className="mb-6">
+        <h1 className="font-heading text-2xl font-extrabold text-nuit">Commandes</h1>
+        <p className="text-sm text-gris">Gérez vos commandes en temps réel</p>
+      </div>
+
+      <div className="grid grid-cols-5 gap-4">
+        {COLUMNS.map((column) => {
+          const columnOrders = orders.filter((o) => column.statuses.includes(o.status));
+          return (
+            <div key={column.title} className="flex flex-col gap-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-bold text-nuit">
+                  {column.emoji} {column.title}
+                </h3>
+                <span className="rounded-full bg-gris-light px-2 py-0.5 text-xs font-semibold text-gris">
+                  {columnOrders.length}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {columnOrders.length === 0 ? (
+                  <div className="rounded border-2 border-dashed border-gris-light p-6 text-center text-xs text-gris">
+                    Aucune commande
+                  </div>
+                ) : (
+                  columnOrders.map((order) => (
+                    <ProOrderCard key={order.id} order={order} onAdvance={advanceStatus} onCancel={cancelOrder} />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

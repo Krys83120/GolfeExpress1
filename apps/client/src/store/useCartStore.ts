@@ -1,0 +1,69 @@
+import { create } from "zustand";
+
+export interface CartItem {
+  id: string; // id local unique (productId + options hash)
+  productId: string;
+  name: string;
+  emoji: string;
+  unitPrice: number;
+  quantity: number;
+  optionsLabel?: string; // ex: "+ Avocat extra"
+}
+
+interface CartState {
+  proId: string | null;
+  proName: string | null;
+  items: CartItem[];
+
+  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }, proId: string, proName: string) => void;
+  updateQuantity: (itemId: string, delta: number) => void;
+  removeItem: (itemId: string) => void;
+  clear: () => void;
+
+  // Sélecteurs dérivés
+  subtotal: () => number;
+  itemCount: () => number;
+}
+
+export const useCartStore = create<CartState>((set, get) => ({
+  proId: null,
+  proName: null,
+  items: [],
+
+  addItem: (item, proId, proName) =>
+    set((state) => {
+      // Si on change de commerçant, on vide le panier (un panier = un seul pro, comme dans la maquette)
+      const sameProCart = state.proId === null || state.proId === proId;
+      const baseItems = sameProCart ? state.items : [];
+
+      const existing = baseItems.find((i) => i.id === item.id);
+      const nextItems = existing
+        ? baseItems.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity ?? 1) } : i
+          )
+        : [...baseItems, { ...item, quantity: item.quantity ?? 1 }];
+
+      return {
+        proId,
+        proName,
+        items: nextItems,
+      };
+    }),
+
+  updateQuantity: (itemId, delta) =>
+    set((state) => ({
+      items: state.items
+        .map((i) => (i.id === itemId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i))
+        .filter((i) => i.quantity > 0),
+    })),
+
+  removeItem: (itemId) =>
+    set((state) => ({
+      items: state.items.filter((i) => i.id !== itemId),
+    })),
+
+  clear: () => set({ proId: null, proName: null, items: [] }),
+
+  subtotal: () => get().items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
+  itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+}));
